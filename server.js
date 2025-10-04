@@ -1,15 +1,23 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 
 const app = express();
 
-// -------------------- Allow All CORS --------------------
-app.use(cors()); // allows all origins
-app.options('*', cors()); // handle preflight OPTIONS requests
+// -------------------- Manual CORS Setup (Allow All Origins) --------------------
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*'); // allow all origins
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS'); // allow all methods
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization'); // allow headers
+  next();
+});
+
+// Handle preflight OPTIONS requests
+app.options('*', (req, res) => {
+  res.sendStatus(200);
+});
 
 app.use(express.json());
 
@@ -69,7 +77,7 @@ function uploadToCloudinary(fileBuffer) {
       { folder: 'tickets', resource_type: 'image' },
       (error, result) => {
         if (error) return reject(error);
-        resolve(result.secure_url); // return full URL
+        resolve(result.secure_url);
       }
     );
     stream.end(fileBuffer);
@@ -85,9 +93,7 @@ app.post('/api/tickets', upload.single('attachment'), async (req, res) => {
     }
 
     let attachmentUrl = null;
-    if (req.file) {
-      attachmentUrl = await uploadToCloudinary(req.file.buffer);
-    }
+    if (req.file) attachmentUrl = await uploadToCloudinary(req.file.buffer);
 
     const ticket = new Ticket({ name, email, description, attachmentUrl });
     await ticket.save();
