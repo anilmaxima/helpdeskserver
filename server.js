@@ -15,17 +15,15 @@ app.use((req, res, next) => {
 });
 
 // Handle preflight OPTIONS requests
-app.options('*', (req, res) => {
-  res.sendStatus(200);
-});
+app.options('*', (req, res) => res.sendStatus(200));
 
 app.use(express.json());
 
 // -------------------- Cloudinary Setup --------------------
 cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.CLOUD_API_KEY,
-  api_secret: process.env.CLOUD_API_SECRET
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 // -------------------- MongoDB Models --------------------
@@ -176,5 +174,5 @@ app.patch('/api/tickets/:id/status', async (req, res) => {
 });
 
 // -------------------- Start Server --------------------
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Backend running on http://0.0.0.0:${PORT}`));
+const PORT = process.env.PORT; // use Render-assigned port
+app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
