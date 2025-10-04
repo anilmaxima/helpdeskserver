@@ -6,7 +6,7 @@ const cloudinary = require('cloudinary').v2;
 
 const app = express();
 
-// -------------------- Manual CORS Setup (Allow All Origins) --------------------
+// -------------------- CORS Setup (Allow All Origins) --------------------
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*'); // allow all origins
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS'); // allow all methods
@@ -53,9 +53,15 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // -------------------- MongoDB Connection --------------------
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
   .then(() => console.log('MongoDB connected'))
-  .catch(err => { console.error(err); process.exit(1); });
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
 
 // -------------------- Routes --------------------
 
@@ -68,7 +74,7 @@ app.post('/api/auth/login', (req, res) => {
   return res.json({ role: 'user' });
 });
 
-// Helper: upload buffer to Cloudinary
+// Upload helper
 function uploadToCloudinary(fileBuffer) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -86,9 +92,7 @@ function uploadToCloudinary(fileBuffer) {
 app.post('/api/tickets', upload.single('attachment'), async (req, res) => {
   try {
     const { name, email, description } = req.body;
-    if (!name || !email || !description) {
-      return res.status(400).json({ error: 'name, email, description required' });
-    }
+    if (!name || !email || !description) return res.status(400).json({ error: 'name, email, description required' });
 
     let attachmentUrl = null;
     if (req.file) attachmentUrl = await uploadToCloudinary(req.file.buffer);
@@ -138,11 +142,7 @@ app.post('/api/tickets/:id/respond', async (req, res) => {
     const ticket = await Ticket.findById(req.params.id);
     if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
 
-    const newMessage = new Message({
-      ticketId: ticket._id,
-      author: author || 'support',
-      message
-    });
+    const newMessage = new Message({ ticketId: ticket._id, author: author || 'support', message });
     await newMessage.save();
 
     res.json(newMessage);
@@ -156,16 +156,9 @@ app.post('/api/tickets/:id/respond', async (req, res) => {
 app.patch('/api/tickets/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
-    if (!['new', 'in_progress', 'resolved'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
-    }
+    if (!['new', 'in_progress', 'resolved'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
-    const updatedTicket = await Ticket.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
-
+    const updatedTicket = await Ticket.findByIdAndUpdate(req.params.id, { status }, { new: true });
     res.json(updatedTicket);
   } catch (err) {
     console.error(err);
@@ -174,5 +167,5 @@ app.patch('/api/tickets/:id/status', async (req, res) => {
 });
 
 // -------------------- Start Server --------------------
-const PORT = process.env.PORT; // use Render-assigned port
+const PORT = process.env.PORT || 4000; // Render will provide this dynamically
 app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
