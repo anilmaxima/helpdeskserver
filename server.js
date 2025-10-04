@@ -6,7 +6,11 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 
 const app = express();
-app.use(cors());
+
+// -------------------- Allow All CORS --------------------
+app.use(cors()); // allows all origins
+app.options('*', cors()); // handle preflight OPTIONS requests
+
 app.use(express.json());
 
 // -------------------- Cloudinary Setup --------------------
@@ -91,7 +95,7 @@ app.post('/api/tickets', upload.single('attachment'), async (req, res) => {
     const message = new Message({ ticketId: ticket._id, author: name, message: description });
     await message.save();
 
-    res.json(ticket); // returns full ticket with attachmentUrl
+    res.json(ticket);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
